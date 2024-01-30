@@ -2,34 +2,50 @@
 
 import argparse
 
-# Create the parser and set its info
-main_parser = argparse.ArgumentParser(prog='APIMapi',
-                    description='Map out an API\'s attack surface from a single endpoint.',
-                    epilog='Text at the bottom of help') #Needs edit
+ascii = """
+█████╗ ██████╗ ██╗███╗   ███╗ █████╗ ██████╗ ██╗
+██╔══██╗██╔══██╗██║████╗ ████║██╔══██╗██╔══██╗██║
+███████║██████╔╝██║██╔████╔██║███████║██████╔╝██║
+██╔══██║██╔═══╝ ██║██║╚██╔╝██║██╔══██║██╔═══╝ ██║
+██║  ██║██║     ██║██║ ╚═╝ ██║██║  ██║██║     ██║
+╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+"""
+def start_main_parser():
+    # Create the parser and set its info
+    main_parser = argparse.ArgumentParser(prog='APIMapi',
+                        description=  ascii +'\nMap out an API\'s attack surface from a single endpoint.',
+                        formatter_class=argparse.RawDescriptionHelpFormatter,
+                        epilog='For more information, find the readme at https://github.com/lheapcs/APIMapi')
 
-# Add arguments to the parser
-# apimapi                                                       | run without any arguments, get ASCII art and small guide
-# apimapi https://endpoint.co.uk                                | begin fuzz of endpoint with no authentication, with default wordlist
-# apimapi https://endpoint.co.uk  -w /home/wordlists/thislist   | begin fuzz with specified wordlist
-# apimapi https://endpoint.co.uk  -ab username:password         | begin fuzz with basic auth specified 
-# apimapi https://endpoint.co.uk  -ak asldkhweuf                | begin fuzz with API key specified 
-# apimapi https://endpoint.co.uk  -o /home/usr                  | begin fuzz and output result to specified location
-# apimapi https://endpoint.co.uk  -d /home/usr                  | output to JSON file twith OpenAPI format
-main_parser.add_argument('Endpoint')
-main_parser.add_argument("-w", "--wordlist", help="Specify the location of a wordlist to fuzz with.")
-main_parser.add_argument("-o", "--output", help="Output the fuzz result to the specified location.")
-main_parser.add_argument("-j", "--output_json", help="Create OpenAPI JSON based on the fuzz result to the specified location.")
-main_parser.add_argument("-ab", "--authentication_basic", help="Authenticate API calls with provided basic details; format username:password.")
-main_parser.add_argument("-ak", "--authentication_key", help="Authenticate API calls with provided API key.")
+    # Add arguments to the parser
+    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with.")
+    main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
+    main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location.")
+    main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
+    main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details; format username:password.")
+    main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
+
+    user_args = main_parser.parse_args()
+
+    if not user_args.endpoint:
+        print(ascii + "\nusage: APIMapi [-h] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [endpoint]\n"
+            + "\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n")
+
+def main():
+    start_main_parser()
+    
+
+if __name__ == "__main__":
+    main()
 
 
-user_args = main_parser.parse_args()
-
+# Below is an example to help with interacting with arguments
 # Set Namespace object from argparse to a dictionary with 'vars(user_args)'
 # If we're on the endpoint arg, skip it with 'continue'
 # If the arg exists in the Namespace, print its value
-for arg in vars(user_args):
-    if arg == 'Endpoint':
-        continue
-    if vars(user_args)[arg]:
-        print(vars(user_args)[arg])
+#
+#for arg in vars(user_args):
+#   if arg == 'endpoint':
+#        continue
+#    if vars(user_args)[arg]:
+#        print(vars(user_args)[arg])
