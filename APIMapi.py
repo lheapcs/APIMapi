@@ -2,6 +2,7 @@
 
 import argparse
 import requests
+from getpass import getpass
 
 ascii = """
 █████╗ ██████╗ ██╗███╗   ███╗ █████╗ ██████╗ ██╗
@@ -23,7 +24,7 @@ def start_main_parser():
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location.")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
-    main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details; format username:password.")
+    main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details; supply just the username here.")
     main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
 
     global user_args
@@ -41,20 +42,40 @@ def start_main_parser():
     #        print(vars(user_args)[arg])
 
 # Needs refining further
-def test_endpoint(endpoint):
-    # Need checks in here for specified options such as auth before carrying this out
+# Function to log any error codes in the final result
+def log_error_response(status_code):
+    print(status_code)
+
+# Needs refining further
+def get_request(endpoint):
+    if endpoint == 'check':
+        current_endpoint = user_args.endpoint
+    else:
+        current_endpoint = endpoint
+    
     try:
-        response = requests.get(endpoint)
+        if user_args.authentication_basic:
+            global user_pass 
+            user_pass == getpass() # Need a check somewhere to see if this already exists
+            response = requests.get(current_endpoint, auth=(user_args.authentication_basic, user_pass))
+        elif user_args.authentication_key:
+            response = requests.get(current_endpoint, headers={'X-APi-Key': user_args.authentication_key})
+        else:
+            response = requests.get(current_endpoint)
     except requests.exceptions.RequestException as err:
-        print('Request to specified endpoint not successful; fuzz cannot begin. Request error:\n')
-        raise SystemExit(err)
-    # response.json() will give the full response body
-    # 'if response.status_code == 200:' not using this for now but may be handy in future
+        if endpoint == 'check':
+            print('Request to specified endpoint not successful; fuzz cannot begin. Request error:\n')
+            raise SystemExit(err)
+        else:
+            # Broken here, cannot access status code because this is an unsuccessful call
+            log_error_response(response.status_code)
+            return False
     return True
 
 # Placeholder    
 def begin_fuzz(request_test):
     if request_test:
+        get_request('https://false') # Test to call without it being a check
         print('we\'re starting then')    
 
 def main():
@@ -65,7 +86,7 @@ def main():
             + "\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n")
     else:
         # Start a fuzz but only if the endpoint specified is not erroring
-        begin_fuzz(test_endpoint(user_args.endpoint)) 
+        begin_fuzz(get_request('check')) # Specify check so we know it's not a get call for the fuzz
     
 
 if __name__ == "__main__":
