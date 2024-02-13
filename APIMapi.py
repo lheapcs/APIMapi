@@ -47,35 +47,49 @@ def check_request():
         raise SystemExit(err)
     return True
 
-# Placeholder
 def create_wordlist():
-    # If no argument, this equals a default wordlist specified here.
-    # If argument, find the wordlist in the folder specified.
-    return 'THE wordlist' 
+    # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
+    if not user_args.wordlist:
+        return ['access-token', 'account', 'accounts', 'admin', 'amount', 'balance', 'balances', 'bar', 'baz', 'bio', 'bios', 'category', 'channel', 
+                'chart', 'circular', 'company', 'companies', 'content', 'contract', 'coordinate', 'credentials', 'creds', 'custom', 'customer', 'customers', 
+                'details', 'dir', 'directory', 'dob', 'email', 'employee', 'event', 'favorite', 'feed', 'foo', 'form', 'github', 'gmail', 'group', 'history', 
+                'image', 'info', 'item', 'job', 'link', 'links', 'location', 'locations', 'log', 'login', 'logins', 'logs', 'map', 'member', 'members', 
+                'messages', 'money', 'my', 'name', 'names', 'news', 'option', 'options', 'pass', 'password', 'passwords', 'phone', 'picture', 'pin', 'post', 
+                'prod', 'production', 'profile', 'profiles', 'publication', 'record', 'sale', 'sales', 'set', 'setting', 'settings', 'setup', 'site', 'swagger',
+                'test', 'test1', 'theme', 'token', 'tokens', 'twitter', 'union', 'url', 'user', 'username', 'users', 'vendor', 'vendors', 'version', 'website', 
+                'work']
+    else:
+        try:
+            with open(user_args.wordlist, 'r') as imported_list:
+                return(imported_list.read().splitlines())
+        except:
+            print('ERROR:\nWordlist not found.\n')
 
 # Placeholder
 def get_fuzz():
-    print('GET fuzz. Got a wordlist: ' + wordlist)
+    print('GET fuzz. Got a wordlist. First word: ' + wordlist[0])
     if user_args.authentication_basic:
         print('Can access user pass. Password: ' + user_pass)
 
 # Placeholder
 def post_fuzz():
-    print('POST fuzz. Got a wordlist: ' + wordlist)
+    print('POST fuzz. Got a wordlist. First word: ' + wordlist[0])
 
 # Placeholder
 def options_fuzz():
-    print('OPTIONS fuzz. Got a wordlist: ' + wordlist)
+    print('OPTIONS fuzz. Got a wordlist. First word: ' + wordlist[0])
 
      
-# Placeholder    
+# In progress  
 def fuzz_handler(check_request):
-    print('Starting fuzz')
+    print('Initial request successful.\nBegining fuzz:\n')
     global wordlist
     wordlist = create_wordlist()
+
     get_fuzz()
     post_fuzz()
     options_fuzz()
+
     # Store the output if this argument is supplied. This will go to file at the end.
     # Whether the above is true or not, output each fuzz attempt to the console.
 
