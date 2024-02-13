@@ -30,6 +30,17 @@ def start_main_parser():
     global user_args
     user_args = main_parser.parse_args()
 
+def status_check(code):
+    if code == 200:
+        return True
+    else:
+        print('\nInitial request to specified endpoint returning status code ' + str(code) + '\nBe aware this may cause all fuzzing to fail\n\nContinue?')
+        continue_action = input('(y/n): ')
+        if continue_action == 'y':
+            return True
+        else:
+            raise SystemExit('Quitting application')
+
 # Run a get request with the specified arguments to ensure the known endpoint is working.
 # This should only be called once due to user_pass.
 def check_request():   
@@ -38,14 +49,16 @@ def check_request():
             global user_pass 
             user_pass = getpass()
             response = requests.get(user_args.endpoint, auth=(user_args.authentication_basic, user_pass))
+            return status_check(response.status_code)
         elif user_args.authentication_key:
             response = requests.get(user_args.endpoint, headers={'X-API-Key': user_args.authentication_key})
+            return status_check(response.status_code)    
         else:
             response = requests.get(user_args.endpoint)
+            return status_check(response.status_code)
     except requests.exceptions.RequestException as err:
-        print('Request to specified endpoint not successful; fuzz cannot begin. Request error:\n')
+        print('Endpoint specified is not in the correct format or does not exist. Request error:\n')
         raise SystemExit(err)
-    return True
 
 def create_wordlist():
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
@@ -82,7 +95,7 @@ def options_fuzz():
      
 # In progress  
 def fuzz_handler(check_request):
-    print('Initial request successful.\nBegining fuzz:\n')
+    print('\nBegining fuzz:\n')
     global wordlist
     wordlist = create_wordlist()
 
@@ -107,3 +120,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+# URL for testing with 200: https://jsonplaceholder.typicode.com/todos
+# URL for testing non 200: https://api.github.com/user 
