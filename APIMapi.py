@@ -2,6 +2,8 @@
 
 import argparse
 import requests
+import re
+from datetime import datetime
 from getpass import getpass
 
 ascii = """
@@ -20,7 +22,7 @@ def start_main_parser():
                         epilog='For more information about using APIMapi, find the readme at https://github.com/lheapcs/APIMapi')
 
     # Add arguments to the parser
-    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with.")
+    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested unless it is a number.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location.")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
@@ -34,7 +36,7 @@ def status_check(code):
     if code == 200:
         return True
     else:
-        print('\nInitial request to specified endpoint returning status code ' + str(code) + '\nBe aware this may cause all fuzzing to fail\n\nContinue?')
+        print('\nInitial request to specified endpoint returning status code ' + str(code) + '.\nBe aware this may cause all fuzzing to fail. Continue?')
         continue_action = input('(y/n): ')
         if continue_action == 'y':
             return True
@@ -60,6 +62,25 @@ def check_request():
         print('Endpoint specified is not in the correct format or does not exist. Request error:\n')
         raise SystemExit(err)
 
+# Used in the actual fuzzing, GET calls based on the given endpoint.
+def make_get_call(endpoint):
+    try:
+        if user_args.authentication_basic:
+            response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
+            print(endpoint + '     ' + str(response.status_code))
+            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
+        elif user_args.authentication_key:
+            response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
+            print(endpoint + '     ' + str(response.status_code))
+            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code}) 
+        else:
+            response = requests.get(endpoint)
+            print(endpoint + '     ' + str(response.status_code))
+            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
+    except requests.exceptions.RequestException as err:
+        print(endpoint + "    " + err)
+        fuzz_result.append({"Endpoint": endpoint, "Error": err})
+
 def create_wordlist():
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
     if not user_args.wordlist:
@@ -78,30 +99,55 @@ def create_wordlist():
         except:
             print('ERROR:\nWordlist not found.\n')
 
+def v_fuzz():
+    # Define pattern of /v* where * is any number.
+    pattern = r'(/v)(\d+)'
+    match = re.search(pattern, user_args.endpoint) # Is this pattern present in the endpoint?
+    
+    if match:
+        # Increment the v number of the URL
+        def increment(match):
+            version = int(match.group(2)) # Use .group to find the number part of the match defined in pattern (\d+)
+            version += 1
+            return match.group(1) + str(version)
+        
+        updated_endpoint = user_args.endpoint
+        for _ in range(3):
+            updated_endpoint = re.sub(pattern, increment, updated_endpoint) # Replace the number in the URL based on the increment function.
+            make_get_call(updated_endpoint)
+
 # Placeholder
 def get_fuzz():
-    print('GET fuzz. Got a wordlist. First word: ' + wordlist[0])
-    if user_args.authentication_basic:
-        print('Can access user pass. Password: ' + user_pass)
+    v_fuzz()
+    # Create endpoint based on wordlist then pass the endpoint to make_get_call()
+    
+    # print('GET fuzz. Got a wordlist. First word: ' + wordlist[0])
+    # if user_args.authentication_basic:
+
 
 # Placeholder
 def post_fuzz():
+    v_fuzz()
     print('POST fuzz. Got a wordlist. First word: ' + wordlist[0])
 
 # Placeholder
 def options_fuzz():
+    v_fuzz()
     print('OPTIONS fuzz. Got a wordlist. First word: ' + wordlist[0])
 
      
 # In progress  
 def fuzz_handler(check_request):
-    print('\nBegining fuzz:\n')
+    print('\nStarting fuzz at ' + str(datetime.now()) + '\n')
     global wordlist
     wordlist = create_wordlist()
 
+    global fuzz_result
+    fuzz_result = []
+
     get_fuzz()
-    post_fuzz()
-    options_fuzz()
+    #post_fuzz()
+    #options_fuzz()
 
     # Store the output if this argument is supplied. This will go to file at the end.
     # Whether the above is true or not, output each fuzz attempt to the console.
