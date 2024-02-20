@@ -22,7 +22,7 @@ def start_main_parser():
                         epilog='For more information about using APIMapi, find the readme at https://github.com/lheapcs/APIMapi')
 
     # Add arguments to the parser
-    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested unless it is a number.")
+    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested. Numbers are currently ignored.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location.")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
@@ -34,6 +34,7 @@ def start_main_parser():
 
 def status_check(code):
     if code == 200:
+        print('Initial request successful.')
         return True
     else:
         print('\nInitial request to specified endpoint returning status code ' + str(code) + '.\nBe aware this may cause all fuzzing to fail. Continue?')
@@ -67,18 +68,18 @@ def make_get_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
-            print(endpoint + '     ' + str(response.status_code))
+            print(str(response.status_code) + '  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
         elif user_args.authentication_key:
             response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
-            print(endpoint + '     ' + str(response.status_code))
+            print(str(response.status_code) + '  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code}) 
         else:
             response = requests.get(endpoint)
-            print(endpoint + '     ' + str(response.status_code))
+            print(str(response.status_code) + '  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
     except requests.exceptions.RequestException as err:
-        print(endpoint + "    " + err)
+        print(str(err) + '  |  ' + endpoint)
         fuzz_result.append({"Endpoint": endpoint, "Error": err})
 
 def create_wordlist():
@@ -116,14 +117,14 @@ def v_fuzz():
             updated_endpoint = re.sub(pattern, increment, updated_endpoint) # Replace the number in the URL based on the increment function.
             make_get_call(updated_endpoint)
 
-# Placeholder
 def get_fuzz():
     v_fuzz()
-    # Create endpoint based on wordlist then pass the endpoint to make_get_call()
-    
-    # print('GET fuzz. Got a wordlist. First word: ' + wordlist[0])
-    # if user_args.authentication_basic:
 
+    pattern = re.compile(r'/([^/\d]+)(?:/\d+)?$')
+
+    for word in wordlist:
+        updated_endpoint = re.sub(pattern, '/' + word, user_args.endpoint)
+        make_get_call(updated_endpoint)
 
 # Placeholder
 def post_fuzz():
@@ -150,7 +151,6 @@ def fuzz_handler(check_request):
     #options_fuzz()
 
     # Store the output if this argument is supplied. This will go to file at the end.
-    # Whether the above is true or not, output each fuzz attempt to the console.
 
 def main():
     start_main_parser()
@@ -160,12 +160,8 @@ def main():
             + "\nusage: APIMapi [-h] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [endpoint]\n"
             )
     else:
-        # Start a fuzz but only if the endpoint specified is not erroring
         fuzz_handler(check_request())
     
 
 if __name__ == "__main__":
     main()
-
-# URL for testing with 200: https://jsonplaceholder.typicode.com/todos
-# URL for testing non 200: https://api.github.com/user 
