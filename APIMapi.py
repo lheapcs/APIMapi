@@ -68,15 +68,15 @@ def make_get_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
-            print(str(response.status_code) + '  |  ' + endpoint)
+            print(str(response.status_code) + '  |  GET  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
         elif user_args.authentication_key:
             response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
-            print(str(response.status_code) + '  |  ' + endpoint)
+            print(str(response.status_code) + '  |  GET  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code}) 
         else:
             response = requests.get(endpoint)
-            print(str(response.status_code) + '  |  ' + endpoint)
+            print(str(response.status_code) + '  |  GET  |  ' + endpoint)
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code})
     except requests.exceptions.RequestException as err:
         print(str(err) + '  |  ' + endpoint)
