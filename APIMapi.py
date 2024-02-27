@@ -73,18 +73,38 @@ def make_get_call(endpoint):
         if user_args.authentication_basic:
             response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
             print(str(response.status_code) + '  |  GET      |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
         elif user_args.authentication_key:
             response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
             print(str(response.status_code) + '  |  GET      |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"}) 
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"}) 
         else:
             response = requests.get(endpoint)
             print(str(response.status_code) + '  |  GET      |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
     except requests.exceptions.RequestException as err:
         print(str(err) + '  |  GET      | ' + endpoint)
-        fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "GET"})
+        try:
+            fuzz_result
+        except:
+            pass
+        else:
+            fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "GET"})
 
 def make_post_call(endpoint):
     post_body = {"userId": 1, "title": "Test", "firstName": "User"} # Change this is the request body of the known endpoint is known.
@@ -92,36 +112,76 @@ def make_post_call(endpoint):
         if user_args.authentication_basic:
             response = requests.post(endpoint, json=post_body, auth=(user_args.authentication_basic, user_pass))
             print(str(response.status_code) + '  |  POST     |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
         elif user_args.authentication_key:
             response = requests.post(endpoint, json=post_body, headers={'X-API-Key': user_args.authentication_key})
             print(str(response.status_code) + '  |  POST     |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"}) 
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"}) 
         else:
             response = requests.post(endpoint, json=post_body)
             print(str(response.status_code) + '  |  POST     |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
     except requests.exceptions.RequestException as err:
         print(str(err) + '  |  POST     |  ' + endpoint)
-        fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "POST"})
+        try:
+            fuzz_result
+        except:
+            pass
+        else:
+            fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "POST"})
 
 def make_options_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.options(endpoint, auth=(user_args.authentication_basic, user_pass))
             print(str(response.status_code) + '  |  OPTIONS |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
         elif user_args.authentication_key:
             response = requests.options(endpoint, headers={'X-API-Key': user_args.authentication_key})
             print(str(response.status_code) + '  |  OPTIONS  |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"}) 
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"}) 
         else:
             response = requests.options(endpoint)
             print(str(response.status_code) + '  |  OPTIONS  |  ' + endpoint)
-            fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
     except requests.exceptions.RequestException as err:
         print(str(err) + '  |  OPTIONS  | ' + endpoint)
-        fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "OPTIONS"})
+        try:
+            fuzz_result
+        except:
+            pass
+        else:
+            fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "OPTIONS"})
 
 def create_wordlist():
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
@@ -184,8 +244,9 @@ def fuzz_handler(check_request):
     global wordlist
     wordlist = create_wordlist()
 
-    global fuzz_result
-    fuzz_result = []
+    if user_args.output or user_args.output_json:
+        global fuzz_result
+        fuzz_result = []
 
     v_fuzz('GET')
     fuzz_sorter('GET')
