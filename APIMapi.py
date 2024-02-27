@@ -41,7 +41,7 @@ def status_check(code):
         print('Initial request successful.')
         return True
     else:
-        print('\nInitial request to specified endpoint returning status code ' + str(code) + '.\nBe aware this may cause all fuzzing to fail. Continue?')
+        print(f'\nInitial request to specified endpoint returning status code {str(code)}.\nBe aware this may cause all fuzzing to fail. Continue?')
         continue_action = input('(y/n): ')
         if continue_action == 'y':
             return True
@@ -240,7 +240,7 @@ def fuzz_sorter(method):
         switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
      
 def fuzz_handler(check_request):
-    print('\nStarting fuzz at ' + str(datetime.now()) + '\n')
+    print(f'\nStarting fuzz at {str(datetime.now())} \n')
     global wordlist
     wordlist = create_wordlist()
 
