@@ -72,7 +72,7 @@ def make_get_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
-            print(str(response.status_code) + '  |  GET      |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -81,7 +81,7 @@ def make_get_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
         elif user_args.authentication_key:
             response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
-            print(str(response.status_code) + '  |  GET      |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -90,7 +90,7 @@ def make_get_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"}) 
         else:
             response = requests.get(endpoint)
-            print(str(response.status_code) + '  |  GET      |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -98,7 +98,7 @@ def make_get_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
     except requests.exceptions.RequestException as err:
-        print(str(err) + '  |  GET      | ' + endpoint)
+        print(f'{str(err)}  |  GET      |  {endpoint}')
         try:
             fuzz_result
         except:
@@ -111,7 +111,7 @@ def make_post_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.post(endpoint, json=post_body, auth=(user_args.authentication_basic, user_pass))
-            print(str(response.status_code) + '  |  POST     |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  POST     |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -120,7 +120,7 @@ def make_post_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
         elif user_args.authentication_key:
             response = requests.post(endpoint, json=post_body, headers={'X-API-Key': user_args.authentication_key})
-            print(str(response.status_code) + '  |  POST     |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  POST     |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -129,7 +129,7 @@ def make_post_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"}) 
         else:
             response = requests.post(endpoint, json=post_body)
-            print(str(response.status_code) + '  |  POST     |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  POST     |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -137,7 +137,7 @@ def make_post_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
     except requests.exceptions.RequestException as err:
-        print(str(err) + '  |  POST     |  ' + endpoint)
+        print(f'{str(err)}  |  POST     |  {endpoint}')
         try:
             fuzz_result
         except:
@@ -149,7 +149,7 @@ def make_options_call(endpoint):
     try:
         if user_args.authentication_basic:
             response = requests.options(endpoint, auth=(user_args.authentication_basic, user_pass))
-            print(str(response.status_code) + '  |  OPTIONS |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  OPTIONS  |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -158,7 +158,7 @@ def make_options_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
         elif user_args.authentication_key:
             response = requests.options(endpoint, headers={'X-API-Key': user_args.authentication_key})
-            print(str(response.status_code) + '  |  OPTIONS  |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  OPTIONS  |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -167,7 +167,7 @@ def make_options_call(endpoint):
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"}) 
         else:
             response = requests.options(endpoint)
-            print(str(response.status_code) + '  |  OPTIONS  |  ' + endpoint)
+            print(f'{str(response.status_code)}  |  OPTIONS  |  {endpoint}')
             try:
                 fuzz_result
             except:
@@ -175,7 +175,7 @@ def make_options_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
     except requests.exceptions.RequestException as err:
-        print(str(err) + '  |  OPTIONS  | ' + endpoint)
+        print(f'{str(err)}  |  OPTIONS  |  {endpoint}')
         try:
             fuzz_result
         except:
