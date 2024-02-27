@@ -24,7 +24,7 @@ def start_main_parser():
     # Add arguments to the parser
     main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested. Numbers are currently ignored.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
-    main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location.")
+    main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
     main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details (supply just the username).")
     main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
@@ -259,6 +259,24 @@ def fuzz_handler(check_request):
         v_fuzz('OPTIONS')
         fuzz_sorter('OPTIONS')
 
+def text_output_handler():
+    formatted_result = []
+
+    sorted_data = sorted(fuzz_result, key=lambda x: x['Result']) # Put in order so 200 results show first.
+
+    for entry in sorted_data:
+        formatted_string = f"{entry['Result']}: {entry['Method']} : {entry['Endpoint']}\n"
+        formatted_result.append(formatted_string)
+
+    result_string = ''.join(formatted_result)
+
+    try:
+        with open(user_args.output, 'w') as result_output:
+            result_output.write(result_string)
+        print(f"\nFile output successfully to {user_args.output}")    
+    except:
+        print("\nError creating file.")
+
 def main():
     start_main_parser()
 
@@ -268,6 +286,9 @@ def main():
             )
     else:
         fuzz_handler(check_request())
+    
+    if user_args.output:
+        text_output_handler()
     
 if __name__ == "__main__":
     main()
