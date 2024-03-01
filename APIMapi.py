@@ -253,10 +253,12 @@ def fuzz_handler(check_request):
 
     if user_args.no_post == False:
         v_fuzz('POST')
+        make_post_call(user_args.endpoint) # See if the original endpoint takes a POST call first.
         fuzz_sorter('POST')
 
     if user_args.no_options == False:    
         v_fuzz('OPTIONS')
+        make_options_call(user_args.endpoint) # See if the original endpoint takes an OPTIONS call first.
         fuzz_sorter('OPTIONS')
 
 def text_output_handler():
