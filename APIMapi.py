@@ -3,6 +3,7 @@
 import argparse
 import requests
 import re
+import json
 from datetime import datetime
 from getpass import getpass
 
@@ -51,20 +52,41 @@ def status_check(code):
 
 # Run a get request with the specified arguments to ensure the known endpoint is working.
 # This should only be called once due to user_pass.
-def check_request():   
+def check_request():
+    if user_args.output or user_args.output_json:
+        global fuzz_result
+        fuzz_result = []   
     try:
         if user_args.authentication_basic:
             global user_pass 
             user_pass = getpass()
             response = requests.get(user_args.endpoint, auth=(user_args.authentication_basic, user_pass))
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": user_args.endpoint, "Result": response.status_code, "Method": "GET"})
             return status_check(response.status_code)
         elif user_args.authentication_key:
             global auth_header
             auth_header = input('\nEnter API key request header name:')
             response = requests.get(user_args.endpoint, headers={auth_header: user_args.authentication_key})
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": user_args.endpoint, "Result": response.status_code, "Method": "GET"})
             return status_check(response.status_code)    
         else:
             response = requests.get(user_args.endpoint)
+            try:
+                fuzz_result
+            except:
+                pass
+            else:
+                fuzz_result.append({"Endpoint": user_args.endpoint, "Result": response.status_code, "Method": "GET"})
             return status_check(response.status_code)
     except requests.exceptions.RequestException as err:
         print('Endpoint specified is not in the correct format or does not exist. Request error:\n')
@@ -256,10 +278,6 @@ def fuzz_handler(check_request):
     global wordlist
     wordlist = create_wordlist()
 
-    if user_args.output or user_args.output_json:
-        global fuzz_result
-        fuzz_result = []
-
     v_fuzz('GET')
     fuzz_sorter('GET')
 
@@ -278,8 +296,8 @@ def text_output_handler():
 
     sorted_data = sorted(fuzz_result, key=lambda x: x['Result']) # Put in order so 200 results show first.
 
-    for entry in sorted_data:
-        formatted_string = f"{entry['Result']}: {entry['Method']} : {entry['Endpoint']}\n"
+    for result in sorted_data:
+        formatted_string = f"{result['Result']}: {result['Method']} : {result['Endpoint']}\n"
         formatted_result.append(formatted_string)
 
     result_string = ''.join(formatted_result)
@@ -288,6 +306,27 @@ def text_output_handler():
         with open(user_args.output, 'w') as result_output:
             result_output.write(result_string)
         print(f"\nFile output successfully to {user_args.output}")    
+    except:
+        print("\nError creating file.")
+
+def json_output_handler():
+    filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300]
+    json_string = {}
+    json_string['openapi'] = '3.0.1'
+    json_string['info'] = {'title': input('\nEnter tested API\'s name: '), 'version': 'v1'}
+    json_string['servers'] = [{'url': re.sub(r'/[^/]+$', '', user_args.endpoint)}]
+    json_string['paths'] = {}
+
+    for result in filtered_data:
+        pattern = re.compile(r'/([^/\d]+)(?:/\d+)?$')
+        keyword = re.search(pattern, result['Endpoint']).group(1)
+ 
+        json_string['paths'][f'/{keyword}'] = {f"{result['Method'].lower()}" : {'tags': [f'{keyword}'], 'responses': {'200': {'description': 'Success'}}}}
+    
+    try:
+        with open(user_args.output_json, 'w') as result_output:
+            json.dump(json_string, result_output)
+        print(f"\nJSON file output successfully to {user_args.output_json}")    
     except:
         print("\nError creating file.")
 
@@ -303,6 +342,9 @@ def main():
     
     if user_args.output:
         text_output_handler()
+
+    if user_args.output_json:
+        json_output_handler()
     
 if __name__ == "__main__":
     main()
