@@ -23,6 +23,7 @@ def start_main_parser():
 
     # Add arguments to the parser
     main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested. Numbers are currently ignored.")
+    main_parser.add_argument("-e", "--extended", action='store_true', help="carry out an extended fuzz where the wordlist is added to the end of the URL path rather than replacing.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
@@ -230,16 +231,25 @@ def v_fuzz(method):
 
 # Based on the method argument call the correct HTTP type.
 def fuzz_sorter(method):
-    pattern = re.compile(r'/([^/\d]+)(?:/\d+)?$')
-
-    for word in wordlist:
-        updated_endpoint = re.sub(pattern, '/' + word, user_args.endpoint)
+    
+    def http_switch():
         switch = {
-                'GET': lambda: make_get_call(updated_endpoint),
-                'POST': lambda: make_post_call(updated_endpoint),
-                'OPTIONS': lambda: make_options_call(updated_endpoint)
-            }
+                    'GET': lambda: make_get_call(updated_endpoint),
+                    'POST': lambda: make_post_call(updated_endpoint),
+                    'OPTIONS': lambda: make_options_call(updated_endpoint)
+                }
         switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
+
+    pattern = re.compile(r'/([^/\d]+)(?:/\d+)?$')
+    for word in wordlist:
+        updated_endpoint = re.sub(pattern, f'/{word}', user_args.endpoint)
+        http_switch()
+
+    if user_args.extended:
+        for word in wordlist:
+            updated_endpoint = f'{user_args.endpoint}/{word}'
+            http_switch()
+            
      
 def fuzz_handler(check_request):
     print(f'\nStarting fuzz at {str(datetime.now())} \n')
@@ -286,7 +296,7 @@ def main():
 
     if not user_args.endpoint:
         print(ascii + "\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n"
-            + "\nusage: APIMapi [-h] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n"
+            + "\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n"
             )
     else:
         fuzz_handler(check_request())
