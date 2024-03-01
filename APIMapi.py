@@ -58,7 +58,9 @@ def check_request():
             response = requests.get(user_args.endpoint, auth=(user_args.authentication_basic, user_pass))
             return status_check(response.status_code)
         elif user_args.authentication_key:
-            response = requests.get(user_args.endpoint, headers={'X-API-Key': user_args.authentication_key})
+            global auth_header
+            auth_header = input('\nEnter API key request header name:')
+            response = requests.get(user_args.endpoint, headers={auth_header: user_args.authentication_key})
             return status_check(response.status_code)    
         else:
             response = requests.get(user_args.endpoint)
@@ -80,7 +82,7 @@ def make_get_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
         elif user_args.authentication_key:
-            response = requests.get(endpoint, headers={'X-API-Key': user_args.authentication_key})
+            response = requests.get(endpoint, headers={auth_header: user_args.authentication_key})
             print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
             try:
                 fuzz_result
@@ -119,7 +121,7 @@ def make_post_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "POST"})
         elif user_args.authentication_key:
-            response = requests.post(endpoint, json=post_body, headers={'X-API-Key': user_args.authentication_key})
+            response = requests.post(endpoint, json=post_body, headers={auth_header: user_args.authentication_key})
             print(f'{str(response.status_code)}  |  POST     |  {endpoint}')
             try:
                 fuzz_result
@@ -157,7 +159,7 @@ def make_options_call(endpoint):
             else:
                 fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
         elif user_args.authentication_key:
-            response = requests.options(endpoint, headers={'X-API-Key': user_args.authentication_key})
+            response = requests.options(endpoint, headers={auth_header: user_args.authentication_key})
             print(f'{str(response.status_code)}  |  OPTIONS  |  {endpoint}')
             try:
                 fuzz_result
