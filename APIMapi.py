@@ -310,19 +310,28 @@ def text_output_handler():
         print("\nError creating file.")
 
 def json_output_handler():
-    filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300]
+    filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300] #Only keep results in the 200 response range.
+
+    # Create start of OpenAPI structure
     json_string = {}
     json_string['openapi'] = '3.0.1'
     json_string['info'] = {'title': input('\nEnter tested API\'s name: '), 'version': 'v1'}
     json_string['servers'] = [{'url': re.sub(r'/[^/]+$', '', user_args.endpoint)}]
     json_string['paths'] = {}
 
+    # Finish OpenAPI based on 200 results.
     for result in filtered_data:
         pattern = re.compile(r'/([^/\d]+)(?:/\d+)?$')
         keyword = re.search(pattern, result['Endpoint']).group(1)
- 
-        json_string['paths'][f'/{keyword}'] = {f"{result['Method'].lower()}" : {'tags': [f'{keyword}'], 'responses': {'200': {'description': 'Success'}}}}
-    
+
+        try: 
+            json_string['paths'][f'/{keyword}']
+        except: 
+            json_string['paths'][f'/{keyword}'] = {f"{result['Method'].lower()}" : {'tags': [f'{keyword}'], 'responses': {f"{result['Result']}": {'description': 'Success'}}}}   
+        else:
+            json_string['paths'][f'/{keyword}'][f"{result['Method'].lower()}"] = {'tags': [f'{keyword}'], 'responses': {f"{result['Result']}": {'description': 'Success'}}}
+
+    # Write to file.
     try:
         with open(user_args.output_json, 'w') as result_output:
             json.dump(json_string, result_output)
