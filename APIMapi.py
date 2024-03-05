@@ -6,6 +6,7 @@ import re
 import json
 from datetime import datetime
 from getpass import getpass
+from random import randint
 
 ascii = """
 █████╗ ██████╗ ██╗███╗   ███╗ █████╗ ██████╗ ██╗
@@ -28,7 +29,9 @@ def start_main_parser():
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
-    main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details (supply just the username).")
+    main_parser.add_argument("-b", "--bola_check", type=int, help="check endpoint for Broken Object Level Authorization on numbered resource. Specify the amount of objects to check.")
+    main_parser.add_argument("-r", "--random", action='store_true', help="use in conjunction with -b to check objects randomly rather than incrementally. Numbers will be within the range from 0 to 9999.")
+    main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details. Supply just the username.")
     main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
     main_parser.add_argument("-np", "--no_post", action='store_true', help="if this flag is supplied the tests will not send POST requests.")
     main_parser.add_argument("-no", "--no_options", action='store_true', help="if this flag is supplied the tests will not send OPTIONS requests.")
@@ -251,6 +254,35 @@ def v_fuzz(method):
             }
             switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
 
+def bola_fuzz():
+    # Define pattern of any numbers in between slashes, ignoring letters.
+    pattern = r'(?<=/)\d+(?![a-zA-Z])'
+    match = re.search(pattern, user_args.endpoint)
+
+    if match:
+        def generate_number(match):
+            version = int(match.group(0))
+            if user_args.random:
+                new_number = randint(0, 9999)
+                while new_number in used_numbers: # Used to not repeat random numbers.
+                    new_number = randint(0, 9999)
+                used_numbers.add(new_number)
+                version = new_number
+            else:    
+                version += 1
+            return str(version)
+        
+        updated_endpoint = user_args.endpoint
+        if user_args.random:
+            used_numbers = set()
+
+        for _ in range(user_args.bola_check):
+            updated_endpoint = re.sub(pattern, generate_number, updated_endpoint)
+            make_get_call(updated_endpoint)
+    
+    else:
+        print('No numbered object resource found in endpoint. Cannot complete BOLA check.')
+
 # Based on the method argument call the correct HTTP type.
 def fuzz_sorter(method):
     
@@ -290,7 +322,12 @@ def fuzz_handler(check_request):
         v_fuzz('OPTIONS')
         make_options_call(user_args.endpoint) # See if the original endpoint takes an OPTIONS call first.
         fuzz_sorter('OPTIONS')
+    
+    if user_args.bola_check:
+        print('\nStarting BOLA check for original endpoint\n')
+        bola_fuzz()
 
+# Output fuzz result to text.
 def text_output_handler():
     formatted_result = []
 
@@ -309,6 +346,7 @@ def text_output_handler():
     except:
         print("\nError creating file.")
 
+# Output fuzz result to JSON in OpenAPI format.
 def json_output_handler():
     filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300] #Only keep results in the 200 response range.
 
@@ -344,7 +382,7 @@ def main():
 
     if not user_args.endpoint:
         print(ascii + "\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n"
-            + "\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n"
+            + "\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n"
             )
     else:
         fuzz_handler(check_request())
