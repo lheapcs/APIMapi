@@ -24,13 +24,14 @@ def start_main_parser():
                         epilog='For more information about using APIMapi, find the readme at https://github.com/lheapcs/APIMapi')
 
     # Add arguments to the parser
-    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested. Numbers are currently ignored.")
+    main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested.")
     main_parser.add_argument("-e", "--extended", action='store_true', help="carry out an extended fuzz where the wordlist is added to the end of the URL path rather than replacing.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
-    main_parser.add_argument("-b", "--bola_check", type=int, help="check endpoint for Broken Object Level Authorization on numbered resource. Specify the amount of objects to check.")
+    main_parser.add_argument("-b", "--bola_check", type=int, help="check endpoint for Broken Object Level Authorization (BOLA) on numbered resource. Specify the amount of objects to check.")
     main_parser.add_argument("-r", "--random", action='store_true', help="use in conjunction with -b to check objects randomly rather than incrementally. Numbers will be within the range from 0 to 9999.")
+    main_parser.add_argument("-f", "--admin_check", action='store_true', help="check endpoint for basic Broken Function Level Authorization. Variations of admin endpoints will be tested.")    
     main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details. Supply just the username.")
     main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
     main_parser.add_argument("-np", "--no_post", action='store_true', help="if this flag is supplied the tests will not send POST requests.")
@@ -56,7 +57,7 @@ def status_check(code):
 # Run a get request with the specified arguments to ensure the known endpoint is working.
 # This should only be called once due to user_pass.
 def check_request():
-    if user_args.output or user_args.output_json:
+    if user_args.output or user_args.output_json or user_args.admin_check:
         global fuzz_result
         fuzz_result = []   
     try:
@@ -96,7 +97,7 @@ def check_request():
         raise SystemExit(err)
 
 # Used in the actual fuzzing, GET calls based on the given endpoint.
-def make_get_call(endpoint):
+def make_get_call(endpoint, type):
     try:
         if user_args.authentication_basic:
             response = requests.get(endpoint, auth=(user_args.authentication_basic, user_pass))
@@ -106,7 +107,7 @@ def make_get_call(endpoint):
             except:
                 pass
             else:
-                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET", "Type": type})
         elif user_args.authentication_key:
             response = requests.get(endpoint, headers={auth_header: user_args.authentication_key})
             print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
@@ -115,7 +116,7 @@ def make_get_call(endpoint):
             except:
                 pass
             else:
-                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"}) 
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET", "Type": type}) 
         else:
             response = requests.get(endpoint)
             print(f'{str(response.status_code)}  |  GET      |  {endpoint}')
@@ -124,7 +125,7 @@ def make_get_call(endpoint):
             except:
                 pass
             else:
-                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET"})
+                fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "GET", "Type": type})
     except requests.exceptions.RequestException as err:
         print(f'{str(err)}  |  GET      |  {endpoint}')
         try:
@@ -248,7 +249,7 @@ def v_fuzz(method):
         for _ in range(3):
             updated_endpoint = re.sub(pattern, increment, updated_endpoint) # Replace the number in the URL based on the increment function.
             switch = {
-                'GET': lambda: make_get_call(updated_endpoint),
+                'GET': lambda: make_get_call(updated_endpoint, 'V Fuzz'),
                 'POST': lambda: make_post_call(updated_endpoint),
                 'OPTIONS': lambda: make_options_call(updated_endpoint)
             }
@@ -278,17 +279,28 @@ def bola_fuzz():
 
         for _ in range(user_args.bola_check):
             updated_endpoint = re.sub(pattern, generate_number, updated_endpoint)
-            make_get_call(updated_endpoint)
+            make_get_call(updated_endpoint, 'BOLA')
     
     else:
-        print('No numbered object resource found in endpoint. Cannot complete BOLA check.')
+        print(f'No numbered object resource found in endpoint {user_args.endpoint}. Cannot complete BOLA check.')
+
+def admin_fuzz(endpoint):
+    get_elements = endpoint.split('/')
+    modified_urls = []
+
+    for i in range(3, len(get_elements)):
+        modified_url = '/'.join(get_elements[:i] + ['admin'] + get_elements[i:])
+        modified_urls.append(modified_url)
+    
+    for url in modified_urls:
+        make_get_call(url, 'Admin')
 
 # Based on the method argument call the correct HTTP type.
 def fuzz_sorter(method):
     
     def http_switch():
         switch = {
-                    'GET': lambda: make_get_call(updated_endpoint),
+                    'GET': lambda: make_get_call(updated_endpoint, 'Original'),
                     'POST': lambda: make_post_call(updated_endpoint),
                     'OPTIONS': lambda: make_options_call(updated_endpoint)
                 }
@@ -306,7 +318,7 @@ def fuzz_sorter(method):
             
      
 def fuzz_handler(check_request):
-    print(f'\nStarting fuzz at {str(datetime.now())} \n')
+    print(f'\nStarting fuzz at {str(datetime.now())}: \n')
     global wordlist
     wordlist = create_wordlist()
 
@@ -324,8 +336,23 @@ def fuzz_handler(check_request):
         fuzz_sorter('OPTIONS')
     
     if user_args.bola_check:
-        print('\nStarting BOLA check for original endpoint\n')
+        print('\nStarting BOLA check for original endpoint:\n')
         bola_fuzz()
+
+    if user_args.admin_check:
+        print('\nStarting Broken Function Level Authorization check for original endpoint:\n')
+        admin_fuzz(user_args.endpoint)
+        print(f'\nAttempt the same test on all successful results from the original fuzz?\n')
+        continue_action = input('(y/n): ')
+        if continue_action == 'y':
+            for result in fuzz_result:
+                try:
+                    result['Type']
+                except:
+                    pass
+                else:
+                    if result['Type'] == 'Original':
+                        admin_fuzz(result['Endpoint'])
 
 # Output fuzz result to text.
 def text_output_handler():
