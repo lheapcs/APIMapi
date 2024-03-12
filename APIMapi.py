@@ -48,7 +48,7 @@ def init_fuzz_result(user_arguments):
         return []
     return None
 
-def status_check(code):
+def status_check(code: int) -> bool:
     if code in range(200, 300):
         print('Initial request successful.')
         return True
@@ -100,7 +100,7 @@ def check_request(user_arguments, fuzz_result):
         raise SystemExit(err)
 
 # Used in the actual fuzzing, GET calls based on the given endpoint.
-def make_get_call(endpoint, type, user_arguments, fuzz_result):
+def make_get_call(endpoint: str, type: str, user_arguments, fuzz_result) -> None:
     try:
         if user_arguments.authentication_basic:
             response = requests.get(endpoint, auth=(user_arguments.authentication_basic, user_pass))
@@ -138,7 +138,7 @@ def make_get_call(endpoint, type, user_arguments, fuzz_result):
         else:
             fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "GET"})
 
-def make_post_call(endpoint, user_arguments, fuzz_result):
+def make_post_call(endpoint: str, user_arguments, fuzz_result)-> None:
     post_body = {"userId": 1, "title": "Test", "firstName": "User"} # Change this is the request body of the known endpoint is known.
     try:
         if user_arguments.authentication_basic:
@@ -177,7 +177,7 @@ def make_post_call(endpoint, user_arguments, fuzz_result):
         else:
             fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "POST"})
 
-def make_options_call(endpoint, user_arguments, fuzz_result):
+def make_options_call(endpoint: str, user_arguments, fuzz_result)-> None:
     try:
         if user_arguments.authentication_basic:
             response = requests.options(endpoint, auth=(user_arguments.authentication_basic, user_pass))
@@ -215,7 +215,7 @@ def make_options_call(endpoint, user_arguments, fuzz_result):
         else:
             fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "OPTIONS"})
 
-def create_wordlist(user_arguments):
+def create_wordlist(user_arguments)-> list[str]:
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
     default_wordlist = ['access-token', 'account', 'accounts', 'admin', 'amount', 'balance', 'balances', 'bar', 'baz', 'bio', 'bios', 'category', 'channel', 
         'chart', 'circular', 'company', 'companies', 'content', 'contract', 'coordinate', 'credentials', 'creds', 'custom', 'customer', 'customers', 
@@ -236,7 +236,7 @@ def create_wordlist(user_arguments):
             return default_wordlist
 
 # If endpoint has a version in it, fuzz other version numbers.
-def v_fuzz(method, user_arguments, fuzz_result):
+def v_fuzz(method: str, user_arguments, fuzz_result)-> None:
     # Define pattern of /v* where * is any number.
     pattern = r'(/v)(\d+)'
     match = re.search(pattern, user_arguments.endpoint) # Confirm if pattern in endpoint.
@@ -258,7 +258,7 @@ def v_fuzz(method, user_arguments, fuzz_result):
             }
             switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
 
-def bola_fuzz(user_arguments, fuzz_result):
+def bola_fuzz(user_arguments, fuzz_result)-> None:
     # Define pattern of any numbers in between slashes, ignoring letters.
     pattern = r'(?<=/)\d+(?![a-zA-Z])'
     match = re.search(pattern, user_arguments.endpoint)
@@ -287,7 +287,7 @@ def bola_fuzz(user_arguments, fuzz_result):
     else:
         print(f'No numbered object resource found in endpoint {user_arguments.endpoint}. Cannot complete BOLA check.')
 
-def admin_fuzz(endpoint, user_arguments, fuzz_result):
+def admin_fuzz(endpoint: str, user_arguments, fuzz_result)-> None:
     get_elements = endpoint.split('/')
     modified_urls = []
 
@@ -299,7 +299,7 @@ def admin_fuzz(endpoint, user_arguments, fuzz_result):
         make_get_call(url, 'Admin', user_arguments, fuzz_result)
 
 # Based on the method argument call the correct HTTP type.
-def fuzz_sorter(method, user_arguments, wordlist, fuzz_result):
+def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result)-> None:
     
     def http_switch():
         switch = {
@@ -320,7 +320,7 @@ def fuzz_sorter(method, user_arguments, wordlist, fuzz_result):
             http_switch()
             
      
-def fuzz_handler(check_request, user_arguments, wordlist, fuzz_result):
+def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_result)-> None:
     print(f'\nStarting fuzz at {str(datetime.now())}: \n')
     
     v_fuzz('GET', user_arguments, fuzz_result)
@@ -356,7 +356,7 @@ def fuzz_handler(check_request, user_arguments, wordlist, fuzz_result):
                         admin_fuzz(result['Endpoint'], user_arguments, fuzz_result)
 
 # Output fuzz result to text.
-def text_output_handler(user_arguments, fuzz_result):
+def text_output_handler(user_arguments, fuzz_result)-> None:
     formatted_result = []
 
     sorted_data = sorted(fuzz_result, key=lambda x: x['Result']) # Put in order so 200 results show first.
@@ -375,7 +375,7 @@ def text_output_handler(user_arguments, fuzz_result):
         print("\nError creating file.")
 
 # Output fuzz result to JSON in OpenAPI format.
-def json_output_handler(user_arguments, fuzz_result):
+def json_output_handler(user_arguments, fuzz_result)-> None:
     filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300] #Only keep results in the 200 response range.
 
     # Create start of OpenAPI structure
