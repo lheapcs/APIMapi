@@ -19,7 +19,7 @@ ascii = """
 def start_main_parser():
     # Create the parser and set its info
     main_parser = argparse.ArgumentParser(prog='APIMapi',
-                        description=  ascii +'\nMap out an API\'s attack surface from a single endpoint.',
+                        description=  f'{ascii}\nMap out an API\'s attack surface from a single endpoint.',
                         formatter_class=argparse.RawDescriptionHelpFormatter,
                         epilog='For more information about using APIMapi, find the readme at https://github.com/lheapcs/APIMapi')
 
@@ -43,6 +43,11 @@ def start_main_parser():
 
     return user_args
 
+def init_fuzz_result(user_arguments):
+    if user_arguments.output or user_arguments.output_json or user_arguments.admin_check:
+        return []
+    return None
+
 def status_check(code):
     if code in range(200, 300):
         print('Initial request successful.')
@@ -57,10 +62,7 @@ def status_check(code):
 
 # Run a get request with the specified arguments to ensure the known endpoint is working.
 # This should only be called once due to user_pass.
-def check_request(user_arguments):
-    if user_arguments.output or user_arguments.output_json or user_arguments.admin_check:
-        global fuzz_result
-        fuzz_result = []   
+def check_request(user_arguments, fuzz_result):   
     try:
         if user_arguments.authentication_basic:
             global user_pass 
@@ -98,7 +100,7 @@ def check_request(user_arguments):
         raise SystemExit(err)
 
 # Used in the actual fuzzing, GET calls based on the given endpoint.
-def make_get_call(endpoint, type, user_arguments):
+def make_get_call(endpoint, type, user_arguments, fuzz_result):
     try:
         if user_arguments.authentication_basic:
             response = requests.get(endpoint, auth=(user_arguments.authentication_basic, user_pass))
@@ -136,7 +138,7 @@ def make_get_call(endpoint, type, user_arguments):
         else:
             fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "GET"})
 
-def make_post_call(endpoint, user_arguments):
+def make_post_call(endpoint, user_arguments, fuzz_result):
     post_body = {"userId": 1, "title": "Test", "firstName": "User"} # Change this is the request body of the known endpoint is known.
     try:
         if user_arguments.authentication_basic:
@@ -175,7 +177,7 @@ def make_post_call(endpoint, user_arguments):
         else:
             fuzz_result.append({"Endpoint": endpoint, "Error": err, "Method": "POST"})
 
-def make_options_call(endpoint, user_arguments):
+def make_options_call(endpoint, user_arguments, fuzz_result):
     try:
         if user_arguments.authentication_basic:
             response = requests.options(endpoint, auth=(user_arguments.authentication_basic, user_pass))
@@ -234,7 +236,7 @@ def create_wordlist(user_arguments):
             return default_wordlist
 
 # If endpoint has a version in it, fuzz other version numbers.
-def v_fuzz(method, user_arguments):
+def v_fuzz(method, user_arguments, fuzz_result):
     # Define pattern of /v* where * is any number.
     pattern = r'(/v)(\d+)'
     match = re.search(pattern, user_arguments.endpoint) # Confirm if pattern in endpoint.
@@ -250,13 +252,13 @@ def v_fuzz(method, user_arguments):
         for _ in range(3):
             updated_endpoint = re.sub(pattern, increment, updated_endpoint) # Replace the number in the URL based on the increment function.
             switch = {
-                'GET': lambda: make_get_call(updated_endpoint, 'V Fuzz', user_arguments),
-                'POST': lambda: make_post_call(updated_endpoint, user_arguments),
-                'OPTIONS': lambda: make_options_call(updated_endpoint, user_arguments)
+                'GET': lambda: make_get_call(updated_endpoint, 'V Fuzz', user_arguments, fuzz_result),
+                'POST': lambda: make_post_call(updated_endpoint, user_arguments, fuzz_result),
+                'OPTIONS': lambda: make_options_call(updated_endpoint, user_arguments, fuzz_result)
             }
             switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
 
-def bola_fuzz(user_arguments):
+def bola_fuzz(user_arguments, fuzz_result):
     # Define pattern of any numbers in between slashes, ignoring letters.
     pattern = r'(?<=/)\d+(?![a-zA-Z])'
     match = re.search(pattern, user_arguments.endpoint)
@@ -280,12 +282,12 @@ def bola_fuzz(user_arguments):
 
         for _ in range(user_arguments.bola_check):
             updated_endpoint = re.sub(pattern, generate_number, updated_endpoint)
-            make_get_call(updated_endpoint, 'BOLA', user_arguments)
+            make_get_call(updated_endpoint, 'BOLA', user_arguments, fuzz_result)
     
     else:
         print(f'No numbered object resource found in endpoint {user_arguments.endpoint}. Cannot complete BOLA check.')
 
-def admin_fuzz(endpoint, user_arguments):
+def admin_fuzz(endpoint, user_arguments, fuzz_result):
     get_elements = endpoint.split('/')
     modified_urls = []
 
@@ -294,16 +296,16 @@ def admin_fuzz(endpoint, user_arguments):
         modified_urls.append(modified_url)
     
     for url in modified_urls:
-        make_get_call(url, 'Admin', user_arguments)
+        make_get_call(url, 'Admin', user_arguments, fuzz_result)
 
 # Based on the method argument call the correct HTTP type.
-def fuzz_sorter(method, user_arguments, wordlist):
+def fuzz_sorter(method, user_arguments, wordlist, fuzz_result):
     
     def http_switch():
         switch = {
-                    'GET': lambda: make_get_call(updated_endpoint, 'Original', user_arguments),
-                    'POST': lambda: make_post_call(updated_endpoint, user_arguments),
-                    'OPTIONS': lambda: make_options_call(updated_endpoint, user_arguments)
+                    'GET': lambda: make_get_call(updated_endpoint, 'Original', user_arguments, fuzz_result),
+                    'POST': lambda: make_post_call(updated_endpoint, user_arguments, fuzz_result),
+                    'OPTIONS': lambda: make_options_call(updated_endpoint, user_arguments, fuzz_result)
                 }
         switch.get(method, lambda: "Internal Error: Invalid HTTP Method")()
 
@@ -318,29 +320,29 @@ def fuzz_sorter(method, user_arguments, wordlist):
             http_switch()
             
      
-def fuzz_handler(check_request, user_arguments, wordlist):
+def fuzz_handler(check_request, user_arguments, wordlist, fuzz_result):
     print(f'\nStarting fuzz at {str(datetime.now())}: \n')
     
-    v_fuzz('GET', user_arguments)
-    fuzz_sorter('GET', user_arguments, wordlist)
+    v_fuzz('GET', user_arguments, fuzz_result)
+    fuzz_sorter('GET', user_arguments, wordlist, fuzz_result)
 
-    if user_arguments.no_post == False:
-        v_fuzz('POST', user_arguments)
-        make_post_call(user_arguments.endpoint, user_arguments) # See if the original endpoint takes a POST call first.
-        fuzz_sorter('POST', user_arguments, wordlist)
+    if user_arguments.no_post is False:
+        v_fuzz('POST', user_arguments, fuzz_result)
+        make_post_call(user_arguments.endpoint, user_arguments, fuzz_result) # See if the original endpoint takes a POST call first.
+        fuzz_sorter('POST', user_arguments, wordlist, fuzz_result)
 
-    if user_arguments.no_options == False:    
-        v_fuzz('OPTIONS', user_arguments)
-        make_options_call(user_arguments.endpoint, user_arguments) # See if the original endpoint takes an OPTIONS call first.
-        fuzz_sorter('OPTIONS', user_arguments, wordlist)
+    if user_arguments.no_options is False:    
+        v_fuzz('OPTIONS', user_arguments, fuzz_result)
+        make_options_call(user_arguments.endpoint, user_arguments, fuzz_result) # See if the original endpoint takes an OPTIONS call first.
+        fuzz_sorter('OPTIONS', user_arguments, wordlist, fuzz_result)
     
     if user_arguments.bola_check:
         print('\nStarting BOLA check for original endpoint:\n')
-        bola_fuzz(user_arguments)
+        bola_fuzz(user_arguments, fuzz_result)
 
     if user_arguments.admin_check:
         print('\nStarting Broken Function Level Authorization check for original endpoint:\n')
-        admin_fuzz(user_arguments.endpoint, user_arguments)
+        admin_fuzz(user_arguments.endpoint, user_arguments, fuzz_result)
         print(f'\nAttempt the same test on all successful results from the original fuzz?\n')
         continue_action = input('(y/n): ')
         if continue_action == 'y':
@@ -351,10 +353,10 @@ def fuzz_handler(check_request, user_arguments, wordlist):
                     pass
                 else:
                     if result['Type'] == 'Original':
-                        admin_fuzz(result['Endpoint'], user_arguments)
+                        admin_fuzz(result['Endpoint'], user_arguments, fuzz_result)
 
 # Output fuzz result to text.
-def text_output_handler(user_arguments):
+def text_output_handler(user_arguments, fuzz_result):
     formatted_result = []
 
     sorted_data = sorted(fuzz_result, key=lambda x: x['Result']) # Put in order so 200 results show first.
@@ -373,7 +375,7 @@ def text_output_handler(user_arguments):
         print("\nError creating file.")
 
 # Output fuzz result to JSON in OpenAPI format.
-def json_output_handler(user_arguments):
+def json_output_handler(user_arguments, fuzz_result):
     filtered_data = [entry for entry in fuzz_result if 200 <= entry['Result'] <= 300] #Only keep results in the 200 response range.
 
     # Create start of OpenAPI structure
@@ -405,20 +407,19 @@ def json_output_handler(user_arguments):
 
 def main():
     user_arguments = start_main_parser()
-    print(user_arguments)
+    fuzz_result = init_fuzz_result(user_arguments)
+
     if not user_arguments.endpoint:
-        print(ascii + "\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n"
-            + "\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n"
-            )
+        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
     else:
         wordlist = create_wordlist(user_arguments)
-        fuzz_handler(check_request(user_arguments), user_arguments, wordlist)
+        fuzz_handler(check_request(user_arguments, fuzz_result), user_arguments, wordlist, fuzz_result)
     
     if user_arguments.output:
-        text_output_handler(user_arguments)
+        text_output_handler(user_arguments, fuzz_result)
 
     if user_arguments.output_json:
-        json_output_handler(user_arguments)
+        json_output_handler(user_arguments, fuzz_result)
     
 if __name__ == "__main__":
     main()
