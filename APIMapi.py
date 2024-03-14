@@ -322,7 +322,7 @@ def json_output_handler(user_arguments, fuzz_result)-> None:
     json_string = {}
     json_string['openapi'] = '3.0.1'
     json_string['info'] = {'title': input('\nEnter tested API\'s name: '), 'version': 'v1'}
-    json_string['servers'] = [{'url': re.sub(r'/[^/]+$', '', user_arguments.endpoint)}]
+    json_string['servers'] = [{'url': re.sub(r'/([^/\d]+)(?:/\d+)?$', '', user_arguments.endpoint)}]
     json_string['paths'] = {}
 
     # Finish OpenAPI based on 200 results.
