@@ -26,6 +26,7 @@ def start_main_parser():
     # Add arguments to the parser
     main_parser.add_argument('endpoint', nargs="?", help="enter an API endpoint to interact with. The last word of the URL path will be tested.")
     main_parser.add_argument("-e", "--extended", action='store_true', help="carry out an extended fuzz where the wordlist is added to the end of the URL path rather than replacing.")
+    main_parser.add_argument("-s", "--skip", action='store_true', help="skip the main fuzz and only complete other specified checks. -b or -f should be specified if using this option.")
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
@@ -157,9 +158,9 @@ def make_options_call(endpoint: str, user_arguments, fuzz_result)-> None:
 
 def create_wordlist(user_arguments)-> list[str]:
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
-    default_wordlist = ['access-token', 'account', 'accounts', 'admin', 'amount', 'balance', 'balances', 'bar', 'baz', 'bio', 'bios', 'category', 'channel', 
+    default_wordlist = ['access-token', 'account', 'accounts', 'admin', 'amount', 'api', 'api-docs', 'apidocs', 'balance', 'balances','bio', 'bios', 'category', 'channel', 
         'chart', 'circular', 'company', 'companies', 'content', 'contract', 'coordinate', 'credentials', 'creds', 'custom', 'customer', 'customers', 
-        'details', 'dir', 'directory', 'dob', 'email', 'employee', 'event', 'favorite', 'feed', 'foo', 'form', 'github', 'gmail', 'group', 'history', 
+        'details', 'dir', 'directory', 'dob', 'email', 'employee', 'event', 'favorite', 'feed', 'foo', 'form', 'github', 'gmail', 'group', 'history', 'hidden', 
         'image', 'info', 'item', 'job', 'link', 'links', 'location', 'locations', 'log', 'login', 'logins', 'logs', 'map', 'member', 'members', 
         'messages', 'money', 'my', 'name', 'names', 'news', 'option', 'options', 'pass', 'password', 'passwords', 'phone', 'picture', 'pin', 'post', 
         'prod', 'production', 'profile', 'profiles', 'publication', 'record', 'sale', 'sales', 'set', 'setting', 'settings', 'setup', 'site', 'swagger',
@@ -263,8 +264,11 @@ def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result)->
 def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_result)-> None:
     print(f'\nStarting fuzz at {str(datetime.now())}: \n')
     
-    v_fuzz('GET', user_arguments, fuzz_result)
-    fuzz_sorter('GET', user_arguments, wordlist, fuzz_result)
+    if user_arguments.skip is False: 
+        v_fuzz('GET', user_arguments, fuzz_result)
+        fuzz_sorter('GET', user_arguments, wordlist, fuzz_result)
+    else:
+        print("Main fuzz skipped.")
 
     if user_arguments.no_post is False:
         v_fuzz('POST', user_arguments, fuzz_result)
@@ -347,13 +351,13 @@ def json_output_handler(user_arguments, fuzz_result)-> None:
 
 def main():
     user_arguments = start_main_parser()
-    fuzz_result = init_fuzz_result(user_arguments)
-
     if not user_arguments.endpoint:
-        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
-    else:
-        wordlist = create_wordlist(user_arguments)
-        fuzz_handler(check_request(user_arguments, fuzz_result), user_arguments, wordlist, fuzz_result)
+        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-s] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
+    
+    fuzz_result = init_fuzz_result(user_arguments)
+    wordlist = create_wordlist(user_arguments)
+
+    fuzz_handler(check_request(user_arguments, fuzz_result), user_arguments, wordlist, fuzz_result)
     
     if user_arguments.output:
         text_output_handler(user_arguments, fuzz_result)
