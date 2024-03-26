@@ -103,5 +103,22 @@ def make_options_call(endpoint: str, user_arguments, fuzz_result, user_pass, aut
         if fuzz_result is not None:
             fuzz_result.append({"Endpoint": endpoint, "Result": response.status_code, "Method": "OPTIONS"})
 
+def rate_limit_test(session, user_arguments, user_pass, auth_header):
+    responses = []
+    for i in range(user_arguments.rate_limit_check):
+        try:
+            if user_arguments.authentication_basic:
+                response = session.get(user_arguments.endpoint, auth=(user_arguments.authentication_basic, user_pass))
+                responses.append(response)
+            elif user_arguments.authentication_key:
+                response = session.get(user_arguments.endpoint, headers={auth_header: user_arguments.authentication_key})
+                responses.append(response)
+            else:
+                response = session.get(user_arguments.endpoint)
+                responses.append(response)
+        except requests.exceptions.RequestException as err:
+            print(f'{str(err)}') 
+    return responses
+
 if __name__ == "__main__":
     print('Functions only run as part of the main apimapi module.')

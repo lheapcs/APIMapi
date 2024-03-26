@@ -16,6 +16,7 @@ Map out an undocumented API based on a single endpoint to get a better picture o
 | apimapi https://endpoint.co.uk  -w /home/wordlists/thislist      | begin fuzz with specified wordlist |
 | apimapi https://endpoint.co.uk  -ab username  | begin fuzz with basic authentication user specified |
 | apimapi https://endpoint.co.uk  -ak asldkhweuf| begin fuzz with API key specified |
+| apimapi https://endpoint.co.uk  -ab username -at  | test any found endpoint with no authentication to see if it potentially has broken authenticaiton. Usable in conjunction with -ab or -ak |
 | apimapi https://endpoint.co.uk  -o /home/file.txt | begin fuzz and output result to specified location |
 | apimapi https://endpoint.co.uk  -d /home/usr | begin fuzz and output result to OpenAPI JSON format |
 | apimapi https://endpoint.co.uk -e | perform an extended fuzz where the wordlist is added to the end of the URL path rather than replacing |

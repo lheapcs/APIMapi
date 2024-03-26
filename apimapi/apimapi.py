@@ -1,5 +1,3 @@
-# APIMapi.py v1
-
 import argparse
 import results
 import fuzzing
@@ -28,11 +26,13 @@ def start_main_parser():
     main_parser.add_argument("-w", "--wordlist", help="specify the location of a wordlist to fuzz with.")
     main_parser.add_argument("-o", "--output", help="output the fuzz result to the specified location (For example '/Documents/fuzz_output.txt').")
     main_parser.add_argument("-j", "--output_json", help="output in OpenAPI JSON format to the specified location.")
-    main_parser.add_argument("-b", "--bola_check", type=int, help="check endpoint for Broken Object Level Authorization (BOLA) on numbered resource. Specify the amount of objects to check.")
+    main_parser.add_argument("-b", "--bola_check", type=int, help="test endpoint for Broken Object Level Authorization (BOLA) on numbered resource. Specify the amount of objects to check.")
     main_parser.add_argument("-r", "--random", action='store_true', help="use in conjunction with -b to check objects randomly rather than incrementally. Numbers will be within the range from 0 to 9999.")
-    main_parser.add_argument("-f", "--admin_check", help="check endpoint for basic Broken Function Level Authorization. Specify the extra path to test (advised to check 'admin' as this is common).")    
+    main_parser.add_argument("-f", "--admin_check", help="test endpoint for basic Broken Function Level Authorization. Specify the extra path to test (advised to check 'admin' as this is common).")
+    main_parser.add_argument("-l", "--rate_limit_check", type=int, help="test endpoint for a possible unrestricted resource consumption vulnerability. Specify the number of calls to make, which will be multiplied by ten.")     
     main_parser.add_argument("-ab", "--authentication_basic", help="authenticate API calls with provided basic details. Supply just the username.")
     main_parser.add_argument("-ak", "--authentication_key", help="authenticate API calls with provided API key.")
+    main_parser.add_argument("-at", "--authentication_check", action='store_true', help="test for potential broken authentication on found endpoints. All endpoints will be called with no authentication to see if they allow access. Should only be used in conjunction with -ab or -ak.")
     main_parser.add_argument("-np", "--no_post", action='store_true', help="if this flag is supplied the tests will not send POST requests.")
     main_parser.add_argument("-no", "--no_options", action='store_true', help="if this flag is supplied the tests will not send OPTIONS requests.")
 
@@ -45,7 +45,7 @@ def start_main_parser():
 def main():
     user_arguments = start_main_parser()
     if not user_arguments.endpoint:
-        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-s] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
+        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-s] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-at] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
     
     fuzz_result = results.init_fuzz_result(user_arguments)
     wordlist = fuzzing.create_wordlist(user_arguments)

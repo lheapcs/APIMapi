@@ -1,5 +1,6 @@
 import calls
 import re
+import requests
 from datetime import datetime
 from random import randint
 
@@ -87,6 +88,13 @@ def admin_fuzz(endpoint: str, user_arguments, fuzz_result, user_pass, auth_heade
     for url in modified_urls:
         calls.make_get_call(url, 'Admin', user_arguments, fuzz_result, user_pass, auth_header)
 
+def authentication_checker(endpoint: str, user_arguments, fuzz_result)-> None:
+    user_arguments.authentication_basic = False
+    user_arguments.authentication_key = False
+
+    calls.make_get_call(endpoint, 'Auth', user_arguments, fuzz_result, None, None),
+
+
 # Based on the method argument call the correct HTTP type.
 def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result, user_pass, auth_header)-> None:
     
@@ -110,9 +118,9 @@ def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result, u
             
      
 def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_result, user_pass, auth_header)-> None:
-    print(f'\nStarting fuzz at {str(datetime.now())}: \n')
-    
-    if user_arguments.skip is False: 
+
+    if user_arguments.skip is False:
+        print(f'\nStarting fuzz at {str(datetime.now())}: \n') 
         v_fuzz('GET', user_arguments, fuzz_result, user_pass, auth_header)
         fuzz_sorter('GET', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
     else:
@@ -146,6 +154,35 @@ def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_
                 else:
                     if result['Type'] == 'Original':
                         admin_fuzz(result['Endpoint'], user_arguments, fuzz_result, user_pass, auth_header)
+    
+    if user_arguments.authentication_check:
+        print('\nStarting broken authentication check for found endpoints:\n')
+        for result in fuzz_result:
+                try:
+                    result['Result'] and result['Type']
+                except:
+                    pass
+                else:
+                    if result['Result'] in range(200, 300) and result['Type'] != 'Auth':
+                        authentication_checker(result['Endpoint'], user_arguments, fuzz_result)
+
+    if user_arguments.rate_limit_check:
+        print('\nStarting rate limit check (this may take some time):\n')
+        session = requests.Session()
+        limit_result = calls.rate_limit_test(session, user_arguments, user_pass, auth_header)
+
+        success_counter = 0
+        fail_counter = 0
+
+        for i, response in enumerate(limit_result, start=1):
+            if response.status_code in range(200, 300):
+                success_counter += 1
+            else:
+                fail_counter += 1
+        
+        print(f'Successful calls: {success_counter}. Failed calls: {fail_counter}')
+        if fail_counter > 0:
+            print(f'\nFailed results found. Potential rate limit in place.')
 
 if __name__ == "__main__":
     print('Functions only run as part of the main apimapi module.')
