@@ -45,7 +45,7 @@ def start_main_parser():
 def main():
     user_arguments = start_main_parser()
     if not user_arguments.endpoint:
-        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-s] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-at] [-np NO_POST] [-no NO_OPTIONS] [endpoint]\n')
+        raise SystemExit(f'{ascii}\nRun APIMapi with an endpoint to begin fuzzing or with the -h option to receive the full help menu.\n\nusage: APIMapi [-h] [-e] [-s] [-w WORDLIST] [-o OUTPUT] [-j OUTPUT_JSON] [-b BOLA_CHECK] [-r] [-f ADMIN_CHECK] [-l RATE_LIMIT_CHECK] [-ab AUTHENTICATION_BASIC] [-ak AUTHENTICATION_KEY] [-at] [-np] [-no] [endpoint]\n')
     
     fuzz_result = results.init_fuzz_result(user_arguments)
     wordlist = fuzzing.create_wordlist(user_arguments)
