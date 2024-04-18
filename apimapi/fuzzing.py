@@ -123,18 +123,20 @@ def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_
         print(f'\nStarting fuzz at {str(datetime.now())}: \n') 
         v_fuzz('GET', user_arguments, fuzz_result, user_pass, auth_header)
         fuzz_sorter('GET', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
+
+        if user_arguments.no_post is False:
+            v_fuzz('POST', user_arguments, fuzz_result, user_pass, auth_header)
+            calls.make_post_call(user_arguments.endpoint, user_arguments, fuzz_result, user_pass, auth_header) # See if the original endpoint takes a POST call first.
+            fuzz_sorter('POST', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
+
+        if user_arguments.no_options is False:    
+            v_fuzz('OPTIONS', user_arguments, fuzz_result, user_pass, auth_header)
+            calls.make_options_call(user_arguments.endpoint, user_arguments, fuzz_result, user_pass, auth_header) # See if the original endpoint takes an OPTIONS call first.
+            fuzz_sorter('OPTIONS', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
     else:
         print("Main fuzz skipped.")
 
-    if user_arguments.no_post is False:
-        v_fuzz('POST', user_arguments, fuzz_result, user_pass, auth_header)
-        calls.make_post_call(user_arguments.endpoint, user_arguments, fuzz_result, user_pass, auth_header) # See if the original endpoint takes a POST call first.
-        fuzz_sorter('POST', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
 
-    if user_arguments.no_options is False:    
-        v_fuzz('OPTIONS', user_arguments, fuzz_result, user_pass, auth_header)
-        calls.make_options_call(user_arguments.endpoint, user_arguments, fuzz_result, user_pass, auth_header) # See if the original endpoint takes an OPTIONS call first.
-        fuzz_sorter('OPTIONS', user_arguments, wordlist, fuzz_result, user_pass, auth_header)
     
     if user_arguments.bola_check:
         print('\nStarting BOLA check for original endpoint:\n')
