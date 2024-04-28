@@ -5,7 +5,7 @@ from datetime import datetime
 from random import randint
 
 # All fuzzing functionality.
-def create_wordlist(user_arguments)-> list[str]:
+def create_wordlist(user_arguments):
     # Provide a built in wordlist if one not provided. This list is https://github.com/danielmiessler/SecLists/blob/master/Discovery/Web-Content/api/objects-lowercase.txt
     default_wordlist = ['access-token', 'account', 'accounts', 'admin', 'amount', 'api', 'api-docs', 'apidocs', 'balance', 'balances','bio', 'bios', 'category', 'channel', 
         'chart', 'circular', 'company', 'companies', 'content', 'contract', 'coordinate', 'credentials', 'creds', 'custom', 'customer', 'customers', 
@@ -96,7 +96,7 @@ def authentication_checker(endpoint: str, user_arguments, fuzz_result)-> None:
 
 
 # Based on the method argument call the correct HTTP type.
-def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result, user_pass, auth_header)-> None:
+def fuzz_sorter(method: str, user_arguments, wordlist, fuzz_result, user_pass, auth_header)-> None:
     
     def http_switch():
         switch = {
@@ -117,7 +117,7 @@ def fuzz_sorter(method: str, user_arguments, wordlist: list[str], fuzz_result, u
             http_switch()
             
      
-def fuzz_handler(check_request: bool, user_arguments, wordlist: list[str], fuzz_result, user_pass, auth_header)-> None:
+def fuzz_handler(check_request: bool, user_arguments, wordlist, fuzz_result, user_pass, auth_header)-> None:
 
     if user_arguments.skip is False:
         print(f'\nStarting fuzz at {str(datetime.now())}: \n') 
