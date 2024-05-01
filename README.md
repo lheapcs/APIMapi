@@ -10,6 +10,20 @@ Fuzz an undocumented API endpoint to map out hidden endpoints and get a better p
      * [Rate limit test](#rate-limit-test)
   * [License](#license)
 
+## Setup
+To run APIMapi: 
+- Download the project files.
+- Run the `apimapi.py` file with Python in your terminal. I.e. `{PathToPython} {PathToAPIMapi.py} endpoint arguments`
+- Specify an endpoint with arguments and run.
+
+You may need to install the `requests` library if there are any errors saying the module can't be found. To do this run:
+`python -m pip install requests` in your terminal of choice.
+
+### Test
+To run a basic test of APIMapi to ensure it is working, specify the endpoint `https://jsonplaceholder.typicode.com/todos`, and use the test wordlist with the argument `-w {YourPathToFile}/test_worlist.txt` where the path to the file is to the test wordlist found in the project folder.
+
+You should see some 200 results in here of live endpoints in the test API.
+
 ## Parameters
 Below is a table of possible commands that can be used with APIMapi. These can be used together and this is explored further in the [Example Usage](#example-usage) section of this README.
 
